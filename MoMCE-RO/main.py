@@ -1,0 +1,407 @@
+# Copyright 2020 - 2022 MONAI Consortium
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import os
+from functools import partial
+
+import numpy as np
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+import torch.nn.parallel
+import torch.utils.data.distributed
+from optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from trainer import run_training, test_model
+from utils.data_utils import get_loader
+
+from monai.inferers import sliding_window_inference
+from monai.losses import DiceCELoss, DiceFocalLoss, FocalLoss, GeneralizedDiceFocalLoss
+from monai.metrics import DiceMetric
+from monai.transforms import  AsDiscrete
+from monai.utils.enums import MetricReduction
+from model.contextunet import ContextUNETR
+from peft import set_peft_model_state_dict
+import pandas as pd
+import torch.nn as nn
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+
+def main(args):
+
+    args.amp = not args.noamp
+    # args.c_max = args.out_channels
+    
+    if args.distributed:
+        args.ngpus_per_node = torch.cuda.device_count()
+        print("Found total gpus", args.ngpus_per_node)
+        args.world_size = args.ngpus_per_node * args.world_size
+        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args,))
+    else:
+        main_worker(gpu=0, args=args)
+
+
+def main_worker(gpu, args):
+
+    # multi
+    if args.distributed:
+        torch.multiprocessing.set_start_method("fork", force=True)
+    np.set_printoptions(formatter={"float": "{: 0.3f}".format}, suppress=True)
+    if args.distributed:
+        args.rank = args.rank * args.ngpus_per_node + gpu
+        dist.init_process_group(
+            backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank
+        )
+        
+    # cuda
+    args.gpu = gpu
+    torch.cuda.set_device(args.gpu)
+    torch.backends.cudnn.benchmark = True
+    
+    print(args.rank, " gpu", args.gpu)
+    if args.rank == 0:
+        print("Batch size is:", args.batch_size, "epochs", args.max_epochs)
+    inf_size = [args.roi_x, args.roi_y, args.roi_z]
+    
+    # model
+    model = ContextUNETR(
+        img_size=(args.roi_x, args.roi_y, args.roi_z),
+        in_channels=args.in_channels,
+        out_channels=args.out_channels,
+        feature_size=args.feature_size,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        dropout_path_rate=args.dropout_path_rate,
+        use_checkpoint=args.use_checkpoint,
+        context=args.context,
+        args=args,
+    )
+
+    # resume
+    if (args.resume_ckpt == True):
+        print("Use pretrained weights")
+        model_dict = torch.load(os.path.join(args.pretrained_dir, args.pretrained_model_name), map_location="cpu")["state_dict"]
+        model.load_state_dict(model_dict, strict=False)  
+
+    # dataset
+    loader = get_loader(args, retriever=model)
+        
+    # load
+    best_acc, start_epoch = 0, 0
+    model.test = False
+            
+        
+    if args.checkpoint is not None:
+        checkpoint = torch.load(args.checkpoint, map_location="cpu") #, map_location="cpu"
+        if args.lora:
+            set_peft_model_state_dict(model.text_encoder, checkpoint)
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in checkpoint["state_dict"].items():
+            new_state_dict[k.replace("backbone.", "")] = v
+        model.load_state_dict(new_state_dict, strict=False)
+        if "epoch" in checkpoint:
+            start_epoch = checkpoint["epoch"]
+        if "best_acc" in checkpoint:
+            best_acc = checkpoint["best_acc"]
+        print("=> loaded checkpoint '{}' (epoch {}) (bestacc {})".format(args.checkpoint, start_epoch, best_acc))
+
+    # loss
+    if args.squared_dice:
+        dice_loss = DiceCELoss(include_background=False, to_onehot_y=True, softmax=True, squared_pred=True, smooth_nr=args.smooth_nr, smooth_dr=args.smooth_dr)
+    else:
+        dice_loss = DiceCELoss(include_background=False, to_onehot_y=True, softmax=True)
+        # dice_loss = DiceFocalLoss(include_background=False, to_onehot_y=False, softmax=False, sigmoid=True)
+        # dice_loss = nn.BCEWithLogitsLoss()
+
+    if (args.compare_mode == 1):# & (args.stage == 3):
+        dice_loss = nn.BCEWithLogitsLoss()
+        
+    # infer
+    post_label = AsDiscrete(to_onehot=args.out_channels)
+    post_pred = AsDiscrete(to_onehot=args.out_channels) #argmax=True, 
+    dice_acc = DiceMetric(include_background=False, reduction=MetricReduction.MEAN, get_not_nans=True)
+    model_inferer = partial(
+        sliding_window_inference,
+        roi_size=inf_size,
+        sw_batch_size=args.sw_batch_size,
+        predictor=model,
+        overlap=args.infer_overlap,
+    )
+
+    pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print("Total parameters count", pytorch_total_params)
+    
+    # # GFlops
+    # from ptflops import get_model_complexity_info
+    # from calflops import calculate_flops
+    # import re
+    # from torch.cuda.amp import GradScaler, autocast
+    # model.cpu()
+    # with autocast(enabled=True):
+    #     inputs = {}
+    #     inputs["x_in"] = torch.zeros(1, 1, 384, 384, 128)
+    #     flops, macs, params = calculate_flops(model=model.to(torch.float32),
+    #                                   kwargs = inputs,
+    #                                   print_results=False)
+    #     print("Bert(hfl/chinese-roberta-wwm-ext) FLOPs:%s   MACs:%s   Params:%s \n" %(flops, macs, params))
+    #     # macs, params = get_model_complexity_info(model, (1, 384, 384, 128), as_strings=True,
+    #     # print_per_layer_stat=True, verbose=True)
+    # # Extract the numerical value
+    # flops = eval(re.findall(r'([\d.]+)', macs)[0])*2
+    # # Extract the unit
+    # flops_unit = re.findall(r'([A-Za-z]+)', macs)[0][0]
+
+    # print('Computational complexity: {:<8}'.format(macs))
+    # print('Computational complexity: {} {}Flops'.format(flops, flops_unit))
+    # print('Number of parameters: {:<8}'.format(params))
+    
+    # gpu
+    model.cuda(args.gpu)
+
+    if args.distributed:
+        torch.cuda.set_device(args.gpu)
+        if args.norm_name == "batch":
+            model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        model.cuda(args.gpu)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu, find_unused_parameters=True)
+    if args.optim_name == "adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.optim_lr, weight_decay=args.reg_weight)
+    elif args.optim_name == "adamw":
+        optimizer = torch.optim.AdamW(model.parameters(), lr=args.optim_lr, weight_decay=args.reg_weight)
+    elif args.optim_name == "sgd":
+        optimizer = torch.optim.SGD(
+            model.parameters(), lr=args.optim_lr, momentum=args.momentum, nesterov=True, weight_decay=args.reg_weight
+        )
+    else:
+        raise ValueError("Unsupported Optimization Procedure: " + str(args.optim_name))
+
+    # lr
+    if args.lrschedule == "warmup_cosine":
+        scheduler = LinearWarmupCosineAnnealingLR(
+            optimizer, warmup_epochs=args.warmup_epochs, max_epochs=args.max_epochs
+        )
+    elif args.lrschedule == "cosine_anneal":
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.max_epochs)
+        if args.checkpoint is not None:
+            scheduler.step(epoch=start_epoch)
+    else:
+        scheduler = None
+
+    test = loader[1].dataset.__getitem__(1)
+    print(test['label'].sum())
+    
+    if (args.test_mode > 0) & (args.stage != 3): #| args.meta
+
+        if args.test_mode == 0:
+            loader[1].dataset.data += loader[0].dataset.data 
+
+        # test
+        accuracy = test_model(
+            model=model, 
+            test_loader=loader[1], 
+            model_inferer=model_inferer,
+            args=args)
+        
+    else:
+        # train
+        accuracy = run_training(
+            model=model,
+            train_loader=loader[0],
+            val_loader=loader[1],
+            optimizer=optimizer,
+            loss_func=dice_loss,
+            acc_func=dice_acc,
+            args=args,
+            model_inferer=model_inferer,
+            scheduler=scheduler,
+            start_epoch=start_epoch,
+            post_label=post_label,
+            post_pred=post_pred,
+        )
+        
+    return accuracy
+
+
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description="ContextSeg")
+
+    #/home/gpuadmin/yujin/ro-llama/breast_target_volume_v2/Report
+    
+    parser.add_argument("--logdir", default='', type=str, help="directory to save the tensorboard logs")
+    parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint") 
+    parser.add_argument("--pretrained_dir", default='', type=str, help="pretrained checkpoint directory") 
+    parser.add_argument("--data_dir", default="/home/gpuadmin/yujin/ro-llama/breast_target_volume/BC_Dataset_total/", type=str, help="dataset directory")
+    parser.add_argument("--report_dir", default="/home/gpuadmin/yujin/ro-llama/breast_target_volume/BC_Dataset_total/20230615_data_label_final_both_breast.xlsx", type=str, help="dataset directory") 
+    parser.add_argument("--rep_plan", default='/home/gpuadmin/yujin/ro-llama/breast_target_volume/231026_train_test_plan_vFormGPT4.xlsx', type=str)
+    parser.add_argument("--rep_gen_plan", default='/scratch/slurm-user3/rep/yujin/llama-recipes/results_seg/llama2_oncology_7B-chat-data_v5_plan_reft_pubmedbert_consistency_reschedule/notes_to_plan_traintestset.csv', type=str)
+
+    parser.add_argument("--json_list", default="dataset_0.json", type=str, help="dataset json file")
+    parser.add_argument(
+        "--pretrained_model_name",
+        default="model_best.pt",
+        type=str,
+        help="pretrained model name",
+    )
+    parser.add_argument("--save_checkpoint", default=True, type=bool, help="save checkpoint during training")
+    parser.add_argument("--distributed", action="store_true", help="start distributed training")
+    parser.add_argument("--world_size", default=1, type=int, help="number of nodes for distributed training")
+    parser.add_argument("--rank", default=0, type=int, help="node rank for distributed training")
+    parser.add_argument("--dist-url", default="tcp://127.0.0.1:21111", type=str, help="distributed url")
+    parser.add_argument("--dist-backend", default="nccl", type=str, help="distributed backend")
+    parser.add_argument("--norm_name", default="instance", type=str, help="normalization name")
+    parser.add_argument("--workers", default=4, type=int, help="number of workers")
+    
+    parser.add_argument("--max_epochs", default=101, type=int, help="max number of training epochs")
+    parser.add_argument("--sw_batch_size", default=1, type=int, help="number of sliding window batch size")
+    parser.add_argument("--optim_lr", default=5e-5, type=float, help="optimization learning rate")
+    parser.add_argument("--optim_name", default="adamw", type=str, help="optimization algorithm")
+    parser.add_argument("--reg_weight", default=1e-5, type=float, help="regularization weight")
+    parser.add_argument("--momentum", default=0.99, type=float, help="momentum")
+    parser.add_argument("--noamp", action="store_true", help="do NOT use amp for training")
+    parser.add_argument("--val_every", default=5, type=int, help="validation frequency")
+    parser.add_argument("--feature_size", default=48, type=int, help="feature size")
+    parser.add_argument("--in_channels", default=1, type=int, help="number of input channels")
+    parser.add_argument("--out_channels", default=2, type=int, help="number of output channels") #3
+    parser.add_argument("--use_normal_dataset", default=True, type=bool, help="use monai Dataset class")
+    parser.add_argument("--a_min", default=-200, type=float, help="a_min in ScaleIntensityRanged") # -200 -1000
+    parser.add_argument("--a_max", default=250.0, type=float, help="a_max in ScaleIntensityRanged") # 250 1000
+    parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
+    parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
+    parser.add_argument("--c_min", default=0, type=float, help="label in ScaleIntensityRanged") # 1.5
+    parser.add_argument("--c_max", default=1, type=float, help="label in ScaleIntensityRanged") # 2
+    parser.add_argument("--space_x", default=1, type=float, help="spacing in x direction")
+    parser.add_argument("--space_y", default=1, type=float, help="spacing in y direction")
+    parser.add_argument("--space_z", default=3, type=float, help="spacing in z direction")
+    parser.add_argument("--roi_x", default=384, type=int, help="roi size in x direction")
+    parser.add_argument("--roi_y", default=384, type=int, help="roi size in y direction")
+    parser.add_argument("--roi_z", default=128, type=int, help="roi size in z direction")
+    parser.add_argument("--dropout_rate", default=0.0, type=float, help="dropout rate")
+    parser.add_argument("--dropout_path_rate", default=0.0, type=float, help="drop path rate")
+    parser.add_argument("--RandFlipd_prob", default=0.2, type=float, help="RandFlipd aug probability")
+    parser.add_argument("--RandRotate90d_prob", default=0.2, type=float, help="RandRotate90d aug probability")
+    parser.add_argument("--RandScaleIntensityd_prob", default=0.1, type=float, help="RandScaleIntensityd aug probability")
+    parser.add_argument("--RandShiftIntensityd_prob", default=0.1, type=float, help="RandShiftIntensityd aug probability")
+    parser.add_argument("--infer_overlap", default=0.5, type=float, help="sliding window inference overlap")
+    parser.add_argument("--lrschedule", default="warmup_cosine", type=str, help="type of learning rate scheduler")
+    parser.add_argument("--warmup_epochs", default=10, type=int, help="number of warmup epochs")
+    parser.add_argument("--resume_ckpt", default=False, type=bool, help="resume training from pretrained checkpoint")
+    parser.add_argument("--smooth_dr", default=1e-6, type=float, help="constant added to dice denominator to avoid nan")
+    parser.add_argument("--smooth_nr", default=0.0, type=float, help="constant added to dice numerator to avoid zero")
+    parser.add_argument("--use_checkpoint", action="store_true", help="use gradient checkpointing to save memory")
+    parser.add_argument("--use_ssl_pretrained", default=False, help="use self-supervised pretrained weights")
+    parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
+    parser.add_argument("--squared_dice", action="store_true", help="use squared Dice")
+
+    parser.add_argument("--textencoder", default="llama3", type=str, help="optimization algorithm")
+    parser.add_argument("--lora", default=False, type=bool)
+ 
+    parser.add_argument("--stage", default=1, type=int) # 1: train 2:style of trainset 3: style of testset 4: test on styled testset
+    parser.add_argument("--test_mode", default=0, type=int)
+    parser.add_argument("--flag", default="plan_form", type=str) #clinical_note
+    parser.add_argument("--save_interval", default=1000, type=int)
+    parser.add_argument("--context_mode", default=1, type=int) # 0:Esential, 1:Expanded, 2:Personalized
+    
+    parser.add_argument("--context", default=False, type=bool)
+    parser.add_argument("--noise", default=False, type=bool)
+    parser.add_argument("--regularizer", default=False, type=bool)
+    parser.add_argument("--alpha", default=False, type=bool)
+    parser.add_argument("--trash", default=False, type=bool)
+    parser.add_argument("--gen", default=False, type=bool)
+    
+    parser.add_argument("--rogpt", default=False, type=bool)
+    parser.add_argument("--rogpt_v2", default=False, type=bool)
+    parser.add_argument("--rag", default=False, type=bool)
+    parser.add_argument("--top_k", default=2, type=int)
+
+    parser.add_argument("--n_prompts", default=1, type=int)
+    parser.add_argument("--context_length", default=0, type=int)
+    parser.add_argument("--batch_size", default=2, type=int, help="number of batch size")
+    parser.add_argument("--ablation", default="", type=str)
+    parser.add_argument("--p_data", default=1, type=float)
+    parser.add_argument("--compare_mode", default=0, type=int) # 1: ConTEXTNet
+    parser.add_argument("--flag_pc", default=True, type=bool)
+    parser.add_argument("--meta", default=False, type=bool)
+
+    parser.add_argument("--target", default=2, type=int) # 0:ctv 1:gtv 2:ctv with gtv 3:mr 4:mr_reg
+    parser.add_argument("--moe", default=0, type=int) # 0:None 1:MOE 2:MO_MCE
+    parser.add_argument("--expert", default=8, type=int) 
+    parser.add_argument("--topk", default=2, type=int) 
+    parser.add_argument("--gtv_dir", default='/home/gpuadmin/yujin/ro-llama/work_dir/PC_NC/v11.0_HU_gtv', type=str) 
+
+    args = parser.parse_args()
+
+    args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/"]
+    args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx"]
+
+    if args.test_mode == 2:
+        args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/YI/"]
+        args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/YI.xlsx"]
+
+    if args.test_mode == 3:
+        args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/GN/"]
+        args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/GN.xlsx"]
+
+    # GTV
+    if args.target == 1:
+        args.c_min = 1.5
+        args.c_max = 2
+        args.in_channels = 1
+    else:
+        args.c_min = 0
+        args.c_max = 1
+        args.in_channels = 2
+
+    if False:
+        
+        # MR
+        if (args.logdir.find('MR') >= 0) | (args.pretrained_dir.find('MR') >= 0):
+            args.target = 3
+            args.in_channels = 3
+
+        # MR REG
+        if (args.logdir.find('REG') >= 0) | (args.pretrained_dir.find('REG') >= 0):
+            args.target = 4
+            args.in_channels = 3
+
+        # gtv test
+        if (args.logdir.find('GTV') >= 0) | (args.pretrained_dir.find('GTV') >= 0):
+            args.c_min = 1.5
+            args.c_max = 2
+            args.in_channels -= 1
+
+        # MoE
+        if (args.logdir.find('Stage2') >= 0) | (args.pretrained_dir.find('Stage2') >= 0):
+            args.stage = 2
+        if (args.logdir.find('Stage3') >= 0) | (args.pretrained_dir.find('Stage3') >= 0):
+            # args.context = True
+            if args.stage == 3:
+                args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/YI/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/GN/"]
+                args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/YI.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/GN.xlsx"]
+            if (args.logdir.find('Finetune') >= 0) | (args.pretrained_dir.find('Finetune') >= 0):
+                args.max_epochs = 1001
+                args.val_every = 25
+                args.optim_lr *= 0.1 
+                if args.stage == 3:
+                    args.resume_ckpt = True
+                    if args.moe == 0:
+                        args.pretrained_dir = '/home/gpuadmin/yujin/ro-llama/work_dir/PC_TMI/v17.1_Stage1_llama3_p0_n1_b2_r1_1.00'
+                    else:
+                        args.pretrained_dir = '/home/gpuadmin/yujin/ro-llama/work_dir/PC_TMI/v17.2_MoE_Stage3SC_llama3_p0_n1_b2_r1_1.00'
+
+    print('target %d, in_channel %d'%(args.target, args.in_channels))            
+    print("stage: %d"%args.stage)
+    print("moe: %d, experts: %d, topk: %d"%(args.moe, args.expert, args.topk))
+    print("lr: %.7f"%args.optim_lr)
+                
+    main(args)
