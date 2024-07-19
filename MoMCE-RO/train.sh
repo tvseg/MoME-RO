@@ -7,8 +7,8 @@ CHECK_GTV='v11.0_HU_gtv'
 # # CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 1 --logdir $WORKDIR_GTV$CHECK_GTV --flag_pc True
 
 ##### 2_1. CTV Segmentation
-WORKDIR='/home/gpuadmin/yujin/ro-llama/work_dir/PC_TMI/'
-CHECKPOINTLIST='v17.0_VisionOnly_Stage1all_1.00' 
+WORKDIR='/home/gpuadmin/yujin/ro-llama/work_dir/PC_NC/'
+CHECKPOINTLIST='v17.0_vision_2shot' 
 for CHECK in $CHECKPOINTLIST
 do
     echo -E $CHECK
@@ -17,7 +17,7 @@ do
     elif [[ $CHECK == *"t5"* ]] ; then 
         CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --logdir $WORKDIR$CHECK --context True --n_prompts 2  --context_length 0 --context_mode 1 --compare_mode 1 --textencoder 't5'
     else
-        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV--logdir $WORKDIR$CHECK --flag_pc True
+        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --stage 3 --gtv_dir $WORKDIR_GTV$CHECK_GTV--logdir $WORKDIR$CHECK --flag_pc True
     fi
 done
 

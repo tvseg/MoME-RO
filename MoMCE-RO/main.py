@@ -362,6 +362,10 @@ if __name__ == "__main__":
         args.c_max = 1
         args.in_channels = 2
 
+    if args.stage == 3:
+        args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/YI/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/GN/"]
+        args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/YI.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/GN.xlsx"]
+
     if False:
         
         # MR
@@ -385,9 +389,6 @@ if __name__ == "__main__":
             args.stage = 2
         if (args.logdir.find('Stage3') >= 0) | (args.pretrained_dir.find('Stage3') >= 0):
             # args.context = True
-            if args.stage == 3:
-                args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/YI/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/GN/"]
-                args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/YI.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/GN.xlsx"]
             if (args.logdir.find('Finetune') >= 0) | (args.pretrained_dir.find('Finetune') >= 0):
                 args.max_epochs = 1001
                 args.val_every = 25

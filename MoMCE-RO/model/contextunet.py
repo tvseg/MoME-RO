@@ -22,7 +22,7 @@ from monai.networks.nets import ViT
 from monai.utils import ensure_tuple_rep
 from transformers import AutoModelForCausalLM, LlamaTokenizer, AutoTokenizer
 
-from .modules import ContextUnetrUpBlock, UnetOutUpBlock, ContextUnetrUpBlock
+from .modules import ContextUnetrUpBlock, UnetOutUpBlock, ExpertContextUnetrUpBlock
 from .sam import TwoWayTransformer
 from .decoder import TPN_DecoderLayer
 from .llama2.llama_custom import LlamaForCausalLM
@@ -272,25 +272,46 @@ class ContextUNETR(nn.Module):
             kernel_size = 3, stride=2, norm_name=norm_name, res_block=True)
         
         # decoder
-        self.decoder4 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
-            in_channels = feature_size * 8 ,
-            out_channels = feature_size * 4,
-            kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name, res_block=True)
+        if args.target == 1:
+            self.decoder4 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size * 8 ,
+                out_channels = feature_size * 4,
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name, res_block=True)
 
-        self.decoder3 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
-            in_channels = feature_size * 4,
-            out_channels = feature_size * 2,
-            kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
-        
-        self.decoder2 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
-            in_channels = feature_size * 2,
-            out_channels = feature_size,
-            kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
+            self.decoder3 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size * 4,
+                out_channels = feature_size * 2,
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
+            
+            self.decoder2 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size * 2,
+                out_channels = feature_size,
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
 
-        self.decoder1 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
-            in_channels = feature_size,
-            out_channels = feature_size, 
-            kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
+            self.decoder1 = ContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size,
+                out_channels = feature_size, 
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
+        else:
+            self.decoder4 = ExpertContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size * 8 ,
+                out_channels = feature_size * 4,
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
+
+            self.decoder3 = ExpertContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size * 4,
+                out_channels = feature_size * 2,
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
+            
+            self.decoder2 = ExpertContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size * 2,
+                out_channels = feature_size,
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
+
+            self.decoder1 = ExpertContextUnetrUpBlock(spatial_dims=spatial_dims,
+                in_channels = feature_size,
+                out_channels = feature_size, 
+                kernel_size = 3, upsample_kernel_size=2, norm_name=norm_name)
 
         # out
         self.out = UnetOutUpBlock(spatial_dims=spatial_dims, 
