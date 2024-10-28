@@ -1,5 +1,4 @@
 # Official source code for MoME: Mixture of Multicenter Experts in Multimodal Generative AI for Advanced Radiotherapy Target Delineation
-Will be updated soon!
 
 ## 1. Environment setting
 ```
@@ -49,5 +48,7 @@ download model_best.pt from https://1drv.ms/u/s!AhwNodepZ41ojOZfRAm6reu33wlXFA?e
 
 ## 4. Inference
 ```
-bash test.sh
+bash MoMCE-RO/test.sh
 ```
+
+Will be updated in detail soon! 
