@@ -224,9 +224,6 @@ def datafold_read_(args, report=None, dir=None, test_mode=None):
 
 
 def get_loader(args, retriever=None):
-    # data_dir = args.data_dir
-    # datalist_json = os.path.join(data_dir, args.json_list)
-
     report = {}
     datalist_ = []
     vallist_ = []

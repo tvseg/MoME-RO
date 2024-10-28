@@ -241,18 +241,9 @@ if __name__ == "__main__":
     parser.add_argument("--logdir", default='', type=str, help="directory to save the tensorboard logs")
     parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint") 
     parser.add_argument("--pretrained_dir", default='', type=str, help="pretrained checkpoint directory") 
-    parser.add_argument("--data_dir", default="/home/gpuadmin/yujin/ro-llama/breast_target_volume/BC_Dataset_total/", type=str, help="dataset directory")
-    parser.add_argument("--report_dir", default="/home/gpuadmin/yujin/ro-llama/breast_target_volume/BC_Dataset_total/20230615_data_label_final_both_breast.xlsx", type=str, help="dataset directory") 
-    parser.add_argument("--rep_plan", default='/home/gpuadmin/yujin/ro-llama/breast_target_volume/231026_train_test_plan_vFormGPT4.xlsx', type=str)
-    parser.add_argument("--rep_gen_plan", default='/scratch/slurm-user3/rep/yujin/llama-recipes/results_seg/llama2_oncology_7B-chat-data_v5_plan_reft_pubmedbert_consistency_reschedule/notes_to_plan_traintestset.csv', type=str)
+    parser.add_argument("--data_dir", default='', type=str, help="dataset directory")
+    parser.add_argument("--report_dir", default='', type=str, help="dataset directory") 
 
-    parser.add_argument("--json_list", default="dataset_0.json", type=str, help="dataset json file")
-    parser.add_argument(
-        "--pretrained_model_name",
-        default="model_best.pt",
-        type=str,
-        help="pretrained model name",
-    )
     parser.add_argument("--save_checkpoint", default=True, type=bool, help="save checkpoint during training")
     parser.add_argument("--distributed", action="store_true", help="start distributed training")
     parser.add_argument("--world_size", default=1, type=int, help="number of nodes for distributed training")
@@ -341,16 +332,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/"]
-    args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx"]
-
-    if args.test_mode == 2:
-        args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/YI/"]
-        args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/YI.xlsx"]
-
-    if args.test_mode == 3:
-        args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/GN/"]
-        args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/GN.xlsx"]
+    args.data_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerD"]
+    args.report_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_D.xlsx"]
 
     # GTV
     if args.target == 1:
@@ -363,42 +346,8 @@ if __name__ == "__main__":
         args.in_channels = 2
 
     if args.stage == 3:
-        args.data_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/SC/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/YI/", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/GN/"]
-        args.report_dir = ["/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/SC.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/YI.xlsx", "/home/gpuadmin/yujin/ro-llama/prostate_target_volume/Report/GN.xlsx"]
-
-    if False:
-        
-        # MR
-        if (args.logdir.find('MR') >= 0) | (args.pretrained_dir.find('MR') >= 0):
-            args.target = 3
-            args.in_channels = 3
-
-        # MR REG
-        if (args.logdir.find('REG') >= 0) | (args.pretrained_dir.find('REG') >= 0):
-            args.target = 4
-            args.in_channels = 3
-
-        # gtv test
-        if (args.logdir.find('GTV') >= 0) | (args.pretrained_dir.find('GTV') >= 0):
-            args.c_min = 1.5
-            args.c_max = 2
-            args.in_channels -= 1
-
-        # MoE
-        if (args.logdir.find('Stage2') >= 0) | (args.pretrained_dir.find('Stage2') >= 0):
-            args.stage = 2
-        if (args.logdir.find('Stage3') >= 0) | (args.pretrained_dir.find('Stage3') >= 0):
-            # args.context = True
-            if (args.logdir.find('Finetune') >= 0) | (args.pretrained_dir.find('Finetune') >= 0):
-                args.max_epochs = 1001
-                args.val_every = 25
-                args.optim_lr *= 0.1 
-                if args.stage == 3:
-                    args.resume_ckpt = True
-                    if args.moe == 0:
-                        args.pretrained_dir = '/home/gpuadmin/yujin/ro-llama/work_dir/PC_TMI/v17.1_Stage1_llama3_p0_n1_b2_r1_1.00'
-                    else:
-                        args.pretrained_dir = '/home/gpuadmin/yujin/ro-llama/work_dir/PC_TMI/v17.2_MoE_Stage3SC_llama3_p0_n1_b2_r1_1.00'
+        args.data_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerA", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerB", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerC"]
+        args.report_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_A.xlsx", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_B.xlsx", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_C.xlsx"]
 
     print('target %d, in_channel %d'%(args.target, args.in_channels))            
     print("stage: %d"%args.stage)

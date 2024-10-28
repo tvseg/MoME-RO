@@ -1,0 +1,20 @@
+-e git+https://github.com/Project-MONAI/MONAI.git@2daabf917a1e6afbc738d22db602f4859672a90d#egg=monai
+einops
+ftfy
+nibabel
+numpy
+openpyxl
+tqdm
+safetensors
+scikit-image
+scikit-learn
+scipy
+seaborn
+seg-metrics
+sentencepiece
+SimpleITK
+tensorboardX
+torch
+transformers
+peft
+argparse
