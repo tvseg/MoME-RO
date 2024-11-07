@@ -1,4 +1,6 @@
-# Official source code for MoME: Mixture of Multicenter Experts in Multimodal Generative AI for Advanced Radiotherapy Target Delineation
+# Official source code for MoME: Mixture of Multicenter Experts in Multimodal Generative AI for Advanced Radiotherapy Target Delineation (https://arxiv.org/abs/2410.00046)
+![alt text](https://github.com/tvseg/MoME-RO/blob/main/Picture1.png) 
+![alt text](https://github.com/tvseg/MoME-RO/blob/main/Picture2.png) 
 
 ## 1. Environment setting
 ```
