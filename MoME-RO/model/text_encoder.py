@@ -138,7 +138,7 @@ class SimpleTokenizer(object):
         return text
 
 
-_tokenizer = SimpleTokenizer(bpe_path='/Users/yo084/Documents/Projects/99_MM-LLM-RO/model/clip/bpe_simple_vocab_16e6.txt.gz')
+# _tokenizer = SimpleTokenizer(bpe_path='/Users/yo084/Documents/Projects/99_MM-LLM-RO/model/clip/bpe_simple_vocab_16e6.txt.gz')
 
 
 def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: bool = False) -> torch.LongTensor: #128 77
