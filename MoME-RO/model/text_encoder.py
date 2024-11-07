@@ -138,7 +138,7 @@ class SimpleTokenizer(object):
         return text
 
 
-_tokenizer = SimpleTokenizer(bpe_path='/home/gpuadmin/yujin/ro-llama/seg/model/clip/bpe_simple_vocab_16e6.txt.gz')
+_tokenizer = SimpleTokenizer(bpe_path='/Users/yo084/Documents/Projects/99_MM-LLM-RO/model/clip/bpe_simple_vocab_16e6.txt.gz')
 
 
 def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: bool = False) -> torch.LongTensor: #128 77
@@ -226,7 +226,7 @@ class TextContextEncoder(nn.Module):
                  transformer_heads=8,
                  transformer_layers=12,
                  embed_dim=512,
-                pretrained='/home/gpuadmin/yujin/ro-llama/seg/model/clip/ViT-B-16.pt', **kwargs):
+                pretrained='/Users/yo084/Documents/Projects/99_MM-LLM-RO/model/clip/ViT-B-16.pt', **kwargs):
         super().__init__()
 
         self.pretrained = pretrained
@@ -242,7 +242,7 @@ class TextContextEncoder(nn.Module):
 
         self.embed_dim = embed_dim
         self.vocab_size = vocab_size
-        self.token_embedding = nn.Embedding(vocab_size, transformer_width)
+        self.token_embedding = nn.Embedding(vocab_size, transformer_width) 
         self.positional_embedding = nn.Parameter(torch.empty(self.context_length, transformer_width))
         self.ln_final = LayerNorm(transformer_width)
         self.text_projection = nn.Parameter(torch.empty(transformer_width, embed_dim))

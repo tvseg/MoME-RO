@@ -40,7 +40,6 @@ from peft import (
     )
 # from mamba_ssm import Mamba
 from numpy.linalg import norm
-from airllm import AutoModel  
 
 cos_sim = lambda a,b: (a @ b.T) / (norm(a.detach().cpu())*norm(b.detach().cpu()))
 
@@ -362,25 +361,13 @@ class ContextUNETR(nn.Module):
             self.attn_transformer = nn.Sequential(*attntrans)
             
             # text encoder
-            if self.compare_mode == 1:
-                self.tokenizer = T5Tokenizer.from_pretrained('/home/gpuadmin/yujin/ro-llama/seg/model/ConTEXTualSegmentation/t5/t5-large')
-                self.text_encoder = T5Model.from_pretrained('/home/gpuadmin/yujin/ro-llama/seg/model/ConTEXTualSegmentation/t5/t5-large/', device_map="cpu")
-                # from transformers import AutoConfig
-                # config = AutoConfig.from_pretrained('/home/gpuadmin/yujin/ro-llama/seg/model/ConTEXTualSegmentation/t5/t5-large/config.json')
-                # model = T5Model(config)  
-                # model.resize_token_embeddings(len(self.tokenizer), pad_to_multiple_of=16)
-                # model.load_state_dict(torch.load('/home/gpuadmin/yujin/ro-llama/seg/model/baseline/ConTEXTualSegmentation/t5/t5-large/', map_location=torch.device('cpu')))
-                self.max_length = 128
-                self.text_encoder.llm = True
-            else:
-                self.text_encoder = TextContextEncoder(embed_dim=self.txt_embed_dim, noise=args.noise, alpha=args.alpha)
-                self.context_length = args.context_length
-                self.token_embed_dim = self.text_encoder.text_projection.shape[-1]
-                self.contexts = nn.Parameter(torch.randn(args.n_prompts, self.context_length, self.token_embed_dim))
-                if self.rag:
-                    self.top_k = args.top_k
-                    # self.contexts_rag = nn.Parameter(torch.randn(args.n_prompts, self.context_length, self.token_embed_dim))
-                self.max_length = 77
+            self.text_encoder = TextContextEncoder(embed_dim=self.txt_embed_dim, noise=args.noise, alpha=args.alpha)
+            self.context_length = args.context_length
+            self.token_embed_dim = self.text_encoder.text_projection.shape[-1]
+            self.contexts = nn.Parameter(torch.randn(args.n_prompts, self.context_length, self.token_embed_dim))
+            if self.rag:
+                self.top_k = args.top_k
+            self.max_length = 77
 
             for name, param in self.text_encoder.named_parameters():
                 param.requires_grad_(False)
@@ -389,7 +376,7 @@ class ContextUNETR(nn.Module):
             if args.textencoder.find('llama') >= 0:
                 
                 self.text_encoder.llm = True
-                rep_llama = '/home/gpuadmin/yujin/ro-llama/seg/model/llama3/Meta-Llama-3-8B-Instruct'
+                rep_llama = '/Users/yo084/Documents/Projects/99_MoMCE-RO_vFinal/model/llama3/Meta-Llama-3-8B-Instruct'
                 self.tokenizer = AutoTokenizer.from_pretrained(rep_llama)
 
                 if args.flag_pc:
@@ -425,12 +412,12 @@ class ContextUNETR(nn.Module):
                 if args.compare_mode == 1:
                     self.text_encoder.all =  True
 
-        # if args.stage == 3:
-        #     for name, param in self.named_parameters():
-        #         if (name.find('sparseMoE')>=0) | (name.find('decoder')>=0) | (name.find('out.')>=0):
-        #             print(name)
-        #         else:
-        #             param.requires_grad_(False)
+        if (args.stage == 3) & (args.max_epochs == 501):
+            for name, param in self.named_parameters():
+                if (name.find('attn_transformer')>=0) | (name.find('decoder')>=0) | (name.find('out.')>=0):  
+                    print(name)
+                else:
+                    param.requires_grad_(False)
 
         self.ablation_none = (args.ablation == "None")
         if args.flag_pc:

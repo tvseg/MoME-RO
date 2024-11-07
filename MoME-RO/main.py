@@ -61,7 +61,10 @@ def main_worker(gpu, args):
         dist.init_process_group(
             backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank
         )
-        
+
+    # # cpu    
+    # args.gpu = 'cpu'
+
     # cuda
     args.gpu = gpu
     torch.cuda.set_device(args.gpu)
@@ -141,30 +144,6 @@ def main_worker(gpu, args):
     pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Total parameters count", pytorch_total_params)
     
-    # # GFlops
-    # from ptflops import get_model_complexity_info
-    # from calflops import calculate_flops
-    # import re
-    # from torch.cuda.amp import GradScaler, autocast
-    # model.cpu()
-    # with autocast(enabled=True):
-    #     inputs = {}
-    #     inputs["x_in"] = torch.zeros(1, 1, 384, 384, 128)
-    #     flops, macs, params = calculate_flops(model=model.to(torch.float32),
-    #                                   kwargs = inputs,
-    #                                   print_results=False)
-    #     print("Bert(hfl/chinese-roberta-wwm-ext) FLOPs:%s   MACs:%s   Params:%s \n" %(flops, macs, params))
-    #     # macs, params = get_model_complexity_info(model, (1, 384, 384, 128), as_strings=True,
-    #     # print_per_layer_stat=True, verbose=True)
-    # # Extract the numerical value
-    # flops = eval(re.findall(r'([\d.]+)', macs)[0])*2
-    # # Extract the unit
-    # flops_unit = re.findall(r'([A-Za-z]+)', macs)[0][0]
-
-    # print('Computational complexity: {:<8}'.format(macs))
-    # print('Computational complexity: {} {}Flops'.format(flops, flops_unit))
-    # print('Number of parameters: {:<8}'.format(params))
-    
     # gpu
     model.cuda(args.gpu)
 
@@ -240,9 +219,15 @@ if __name__ == "__main__":
     
     parser.add_argument("--logdir", default='', type=str, help="directory to save the tensorboard logs")
     parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint") 
-    parser.add_argument("--pretrained_dir", default='', type=str, help="pretrained checkpoint directory") 
+    parser.add_argument("--pretrained_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/multimodal_MoME/', type=str, help="pretrained checkpoint directory") 
     parser.add_argument("--data_dir", default='', type=str, help="dataset directory")
     parser.add_argument("--report_dir", default='', type=str, help="dataset directory") 
+    parser.add_argument(
+        "--pretrained_model_name",
+        default="model_best.pt",
+        type=str,
+        help="pretrained model name",
+    )
 
     parser.add_argument("--save_checkpoint", default=True, type=bool, help="save checkpoint during training")
     parser.add_argument("--distributed", action="store_true", help="start distributed training")
@@ -298,7 +283,7 @@ if __name__ == "__main__":
     parser.add_argument("--lora", default=False, type=bool)
  
     parser.add_argument("--stage", default=1, type=int) # 1: train 2:style of trainset 3: style of testset 4: test on styled testset
-    parser.add_argument("--test_mode", default=0, type=int)
+    parser.add_argument("--test_mode", default=1, type=int)
     parser.add_argument("--flag", default="plan_form", type=str) #clinical_note
     parser.add_argument("--save_interval", default=1000, type=int)
     parser.add_argument("--context_mode", default=1, type=int) # 0:Esential, 1:Expanded, 2:Personalized
@@ -316,7 +301,7 @@ if __name__ == "__main__":
     parser.add_argument("--top_k", default=2, type=int)
 
     parser.add_argument("--n_prompts", default=1, type=int)
-    parser.add_argument("--context_length", default=0, type=int)
+    parser.add_argument("--context_length", default=32, type=int)
     parser.add_argument("--batch_size", default=2, type=int, help="number of batch size")
     parser.add_argument("--ablation", default="", type=str)
     parser.add_argument("--p_data", default=1, type=float)
@@ -328,12 +313,10 @@ if __name__ == "__main__":
     parser.add_argument("--moe", default=0, type=int) # 0:None 1:MOE 2:MO_MCE
     parser.add_argument("--expert", default=8, type=int) 
     parser.add_argument("--topk", default=2, type=int) 
-    parser.add_argument("--gtv_dir", default='/home/gpuadmin/yujin/ro-llama/work_dir/PC_NC/v11.0_HU_gtv', type=str) 
+    parser.add_argument("--shot", default=1, type=int) 
+    parser.add_argument("--gtv_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/organ', type=str) 
 
     args = parser.parse_args()
-
-    args.data_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerD"]
-    args.report_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_D.xlsx"]
 
     # GTV
     if args.target == 1:
@@ -345,9 +328,32 @@ if __name__ == "__main__":
         args.c_max = 1
         args.in_channels = 2
 
-    if args.stage == 3:
-        args.data_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerA", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerB", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerC"]
-        args.report_dir = ["/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_A.xlsx", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_B.xlsx", "/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/report_C.xlsx"]
+    args.data_dir = ["/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD/"]
+    args.report_dir = ["/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD.xlsx"]
+
+    # MoE
+    if (args.logdir.find('MoME') >= 0) | (args.pretrained_dir.find('MoME') >= 0):
+        args.moe = 2
+    elif (args.logdir.find('VMoE') >= 0) | (args.pretrained_dir.find('VMoE') >= 0):
+        args.moe = 1
+
+    # Finetune
+    if (args.logdir.find('Finetune') >= 0) | (args.pretrained_dir.find('Finetune') >= 0):
+        
+        args.max_epochs = 501
+        args.val_every = 20
+        args.optim_lr *= 0.1 
+        if args.stage == 3:
+            args.resume_ckpt = True
+
+            # checkpoint
+            if args.context:
+                if args.moe == 2:
+                    args.pretrained_dir = '/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/multimodal_MoME' 
+                else:
+                    args.pretrained_dir = '/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/multimodal'
+            else:
+                args.pretrained_dir = '/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/unimodal'
 
     print('target %d, in_channel %d'%(args.target, args.in_channels))            
     print("stage: %d"%args.stage)

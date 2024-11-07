@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch import Union
+from typing import Union
 from typing import Tuple
 
 from monai.networks.layers import trunc_normal_

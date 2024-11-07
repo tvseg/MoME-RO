@@ -1,7 +1,4 @@
-# Official source code for MoME: Mixture of Multicenter Experts in Multimodal Generative AI for Advanced Radiotherapy Target Delineation (https://arxiv.org/abs/2410.00046)
-
-![alt text](https://github.com/tvseg/MoME-RO/blob/main/Picture1.png) 
-![alt text](https://github.com/tvseg/MoME-RO/blob/main/Picture2.png) 
+# Official source code for MoME: Mixture of Multicenter Experts in Multimodal Generative AI for Advanced Radiotherapy Target Delineation
 
 ## 1. Environment setting
 ```
@@ -28,30 +25,33 @@ Label data : PatientNumber_RTst~/*.dcm
             └── 2.16.840.1.114362.1.12105090.23690985581.662027519.843.3197.dcm
 
 # Run preprocess.py as below
-python -m prerocess --dir_ct '/hdd/raw_data/dir_ct/' --dir_add '/hdd/raw_data/dir_mr/' --dir_save '/hdd/raw_data/save_dir/'
+python -m preprocess --dir_ct '/hdd/raw_data/dir_ct/' --dir_add '/hdd/raw_data/dir_mr/' --dir_save '/hdd/raw_data/save_dir/'
 ```
 
 ## 3. Model checkpoints
 ```
-cd MoMCE-RO/model/llama3
+cd MoME-RO/model/llama3
 git lfs install
 git clone https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
 cd ..
 cd ..
 mkdir ckpt
 cd ckpt
-mkdir multimodal
+mkdir multimodal_MoME
 mkdir organ
-cd MoMCE-RO/ckpt/multimodal
+cd MoME-RO/ckpt/multimodal_MoME
 download model_best.pt from https://1drv.ms/u/s!AhwNodepZ41ojZhiXf5aalWIpTNUFA?e=Wecdhr
 cd ..
-cd MoMCE-RO/ckpt/organ
+cd MoME-RO/ckpt/organ
 download model_best.pt from https://1drv.ms/u/s!AhwNodepZ41ojOZfRAm6reu33wlXFA?e=e7lI9P
 ```
 
 ## 4. Inference
 ```
-bash MoMCE-RO/test.sh
+bash MoME-RO/test.sh
 ```
 
-Will be updated in detail soon! 
+## 5. Finetune
+```
+bash MoME-RO/finetune.sh
+```

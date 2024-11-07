@@ -117,7 +117,7 @@ def test_save(save_path, image, name, flag_save=FLAG_SAVE):
         img_add_orig = np.expand_dims(img_add_orig, axis=3).repeat(3,3)
 
         img = montage(img_add_orig, grid_shape=(8, 5), channel_axis=3)
-        Image.fromarray((img*255).astype('uint8')).save('%s_%s.png'%(save_path, name))
+        Image.fromarray((img*255).astype('uint8')).save('%s/%s.png'%(save_path, name))
                 
     else:
         pass
@@ -178,8 +178,8 @@ def main(args):
 
     # Directory
     dirs = glob.glob('%s/**/*_CT_*'%args.dir_ct, recursive=True)
-    add_dirs = args.dir_add
-    save_dirs = args.dir_save + '%s'%args.dir_ct.split('_')[-1][:-1] 
+    # add_dirs = args.dir_add
+    save_dirs = args.dir_save
 
     outlier = []
     mask_outlier = []
@@ -198,12 +198,12 @@ def main(args):
 
         # MRI
         new_add_subfolder = None
-        try:
-            add_subfolder = glob.glob('%s/**/*%s*MR*'%(add_dirs, patient_ID), recursive=True)[0]
-            new_add_subfolder = add_subfolder.replace(' ', '_')
-            os.rename(add_subfolder, new_add_subfolder)     
-        except:
-            continue
+        # try:
+        #     add_subfolder = glob.glob('%s/**/*%s*MR*'%(add_dirs, patient_ID), recursive=True)[0]
+        #     new_add_subfolder = add_subfolder.replace(' ', '_')
+        #     os.rename(add_subfolder, new_add_subfolder)     
+        # except:
+        #     continue
 
         os.makedirs(save_path, exist_ok=True)
 
@@ -227,7 +227,7 @@ def main(args):
             _ = dcmrtstruct2nii(rtstruct_file=new_rtstruct_path, dicom_file=new_subfolder, output_path=save_path, additional_dicom_file=new_add_subfolder)
                 
         # Load NIfTI to resample
-
+        image_add = None
         os.chdir(save_path)
         try:
             image = sitk.ReadImage('image.nii.gz') 
@@ -235,11 +235,11 @@ def main(args):
             outlier.append(patient_ID)
             print("outlier (%d)"%(len(outlier)))
             continue
-        try:
-            image_add = sitk.ReadImage('image_add_reg.nii.gz')
-        except:
-            image_add = None
-            continue
+        # try:
+        #     image_add = sitk.ReadImage('image_add_reg.nii.gz')
+        # except:
+        #     image_add = None
+        #     continue
 
         # Get image specification
         image_size = image.GetSize()
@@ -249,7 +249,6 @@ def main(args):
         label = np.zeros((image_size[2], image_size[0], image_size[1]))
         
         # Trial 1: Extract adequate masks
-        list_name = []
         for j in glob.glob('mask*'):
             if (j.lower().find('tv') >= 0):
 
@@ -270,41 +269,11 @@ def main(args):
                 # CTV & PTV
                 label[(npstructure == 255) & (label!= 2)] = 1
                 print('***'+j, sep = ', ')
-                list_name.append(j)
-                
 
             else:
                 print(j, sep = ', ')
 
-        # Trial 2
-        if len(list_name) == 0:
-            for j in glob.glob('mask*'):
-                find = j.lower().split('h_')[-1].split('l_')[-1] 
-                num_find = re.findall(r'\d+', find)
-                if len(num_find) == 0:
-                    print(j, sep = ', ')
-                    continue
-                if (j.lower().find('roi') >= 0):
-                    continue
-                structure = sitk.ReadImage(j)
-                npstructure = sitk.GetArrayFromImage(structure)
-
-                 # GTV
-                if (j.lower().find('h_') >= 0) | (j.lower().find('_250x') >= 0) | (j.lower().find('_240') >= 0) | (j.lower().find('hptv') >= 0) | (j.lower().find('ptv1') >= 0)| (j.lower().find('high') >= 0):
-                    label[npstructure == 255] = 2 #label_index[j.lower()] #
-                    print('***gtv***'+j, sep = ', ')
-
-                # CTV & PTV
-                label[(npstructure == 255) & (label!= 2)] = 1
-                print('***'+j, sep = ', ')
-                list_name.append(j)
-                print('***'+j, sep = ', ')
-
-        # Trial 3
-        if len(list_name) == 0:
-            mask_outlier.append(patient_ID)
-            print("mask outlier (%d): %s"%(len(mask_outlier), ', '.join(mask_outlier)))
-            continue
+            os.remove(j)
         
         # Set reference
         new_size = np.array(image_size) * np.array(image_spacing) / reference_spacing
@@ -361,9 +330,9 @@ def main(args):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="ContextSeg")    
-    parser.add_argument("--dir_ct", default='/hdd/raw_data/dir_ct/', type=str, help="root directory for ct sequence")
+    parser.add_argument("--dir_ct", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/MGH/dir_ct/', type=str, help="root directory for ct sequence")
     parser.add_argument("--dir_add", default='', type=str, help="root directory for additional sequence (MR, PET, SPECT)") 
-    parser.add_argument("--dir_save", default='/Users/yo084/Documents/Projects/1_MoMCE-RO_vFinal/MoME-RO/MoMCE-RO/dataset/centerD/', type=str, help="target directory for processed dataset") 
+    parser.add_argument("--dir_save", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD/', type=str, help="target directory for processed dataset") 
     args = parser.parse_args()
 
     main(args)
