@@ -46,12 +46,22 @@ cd MoME-RO/ckpt/organ
 download model_best.pt from https://1drv.ms/u/s!AhwNodepZ41ojOZfRAm6reu33wlXFA?e=e7lI9P
 ```
 
-## 4. Inference
+## 4. Hyperparameter settings
+```
+set hyperparameters in main.py to each directory
+- data_dir : /hdd/raw_data/save_dir/ (example anonymized data will be updated)
+- report_dir : /hdd/raw_data/save_dir/report.xlsx (example anonymized report format will be updated)
+- rep_llm : MoME-RO/model/llama3/Meta-Llama-3-8B-Instruct
+- gtv_dir : MoME-RO/ckpt/organ
+- pretrained_dir : MoME-RO/ckpt/multimodal_MoME
+```
+
+## 5. Inference
 ```
 bash MoME-RO/test.sh
 ```
 
-## 5. Finetune
+## 6. Finetune
 ```
 bash MoME-RO/finetune.sh
 ```

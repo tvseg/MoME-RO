@@ -376,7 +376,7 @@ class ContextUNETR(nn.Module):
             if args.textencoder.find('llama') >= 0:
                 
                 self.text_encoder.llm = True
-                rep_llama = '/Users/yo084/Documents/Projects/99_MoMCE-RO_vFinal/model/llama3/Meta-Llama-3-8B-Instruct'
+                rep_llama = args.rep_llm
                 self.tokenizer = AutoTokenizer.from_pretrained(rep_llama)
 
                 if args.flag_pc:

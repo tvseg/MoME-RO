@@ -220,8 +220,8 @@ if __name__ == "__main__":
     parser.add_argument("--logdir", default='', type=str, help="directory to save the tensorboard logs")
     parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint") 
     parser.add_argument("--pretrained_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/multimodal_MoME/', type=str, help="pretrained checkpoint directory") 
-    parser.add_argument("--data_dir", default='', type=str, help="dataset directory")
-    parser.add_argument("--report_dir", default='', type=str, help="dataset directory") 
+    parser.add_argument("--data_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD/', type=str, help="dataset directory")
+    parser.add_argument("--report_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD.xlsx', type=str, help="dataset directory") 
     parser.add_argument(
         "--pretrained_model_name",
         default="model_best.pt",
@@ -315,6 +315,7 @@ if __name__ == "__main__":
     parser.add_argument("--topk", default=2, type=int) 
     parser.add_argument("--shot", default=1, type=int) 
     parser.add_argument("--gtv_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/organ', type=str) 
+    parser.add_argument("--rep_llm", default='/Users/yo084/Documents/Projects/99_MoMCE-RO_vFinal/model/llama3/Meta-Llama-3-8B-Instruct', type=str) 
 
     args = parser.parse_args()
 
@@ -328,8 +329,8 @@ if __name__ == "__main__":
         args.c_max = 1
         args.in_channels = 2
 
-    args.data_dir = ["/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD/"]
-    args.report_dir = ["/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD.xlsx"]
+    args.data_dir = [args.data_dir]
+    args.report_dir = [args.report_dir]
 
     # MoE
     if (args.logdir.find('MoME') >= 0) | (args.pretrained_dir.find('MoME') >= 0):
@@ -345,15 +346,7 @@ if __name__ == "__main__":
         args.optim_lr *= 0.1 
         if args.stage == 3:
             args.resume_ckpt = True
-
-            # checkpoint
-            if args.context:
-                if args.moe == 2:
-                    args.pretrained_dir = '/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/multimodal_MoME' 
-                else:
-                    args.pretrained_dir = '/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/multimodal'
-            else:
-                args.pretrained_dir = '/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/unimodal'
+            args.pretrained_dir = args.pretrained_dir 
 
     print('target %d, in_channel %d'%(args.target, args.in_channels))            
     print("stage: %d"%args.stage)
