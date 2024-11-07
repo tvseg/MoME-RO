@@ -4,7 +4,7 @@
 
 ## 1. Environment setting
 ```
-git clone https://github.com/tvseg/MM-LLM-RO.git
+git clone https://github.com/tvseg/MoME-RO.git
 pip install -r requirements.txt
 ```
 
