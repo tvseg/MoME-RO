@@ -56,6 +56,7 @@ set hyperparameters in main.py to each directory
 - rep_llm : MoME-RO/model/llama3/Meta-Llama-3-8B-Instruct
 - gtv_dir : MoME-RO/ckpt/organ
 - pretrained_dir : MoME-RO/ckpt/multimodal_MoME
+- logdir : MoME-RO/run/multimodal_MoME_Finetune (if finetune)
 ```
 
 ## 5. Inference
