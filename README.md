@@ -40,9 +40,13 @@ cd ..
 mkdir ckpt
 cd ckpt
 mkdir multimodal_MoME
+mkdir unimodal
 mkdir organ
 cd MoME-RO/ckpt/multimodal_MoME
 download model_best.pt from https://1drv.ms/u/s!AhwNodepZ41ojZhiXf5aalWIpTNUFA?e=Wecdhr
+cd ..
+cd MoME-RO/ckpt/unimodal
+download model_best.pt from https://1drv.ms/u/s!AhwNodepZ41ojP8loYRguGMbO7AXAw?e=38FGAa
 cd ..
 cd MoME-RO/ckpt/organ
 download model_best.pt from https://1drv.ms/u/s!AhwNodepZ41ojOZfRAm6reu33wlXFA?e=e7lI9P
