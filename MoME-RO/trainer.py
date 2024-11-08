@@ -42,7 +42,7 @@ def test_model(model, test_loader, model_inferer, args):
     model.eval()
     model.to(args.gpu)
 
-    eval_tag = ('_%s'%args.report_dir[-1].split('/')[-1].split('.')[0]) + ('_%s'%(args.flag) if args.flag != 'plan_form' else '') + args.ablation + ('_trainset' if args.meta else '')
+    eval_tag = ('_%s'%args.report_dir[-1].split('/')[-1].split('.')[0]) + ('-expert%d'%(args.force_expert) if args.force_expert > 0 else '') + args.ablation + ('_trainset' if args.meta else '')
     print(args.pretrained_dir)
     if args.save_interval != 2:
         file = open(args.pretrained_dir + '/result%s.csv'%eval_tag, 'w')
@@ -401,7 +401,7 @@ def run_training(
                         
             if args.rank == 0 and args.logdir is not None and args.save_checkpoint:
                 # save_checkpoint(model, epoch, args, best_acc=val_acc_max, filename="model_%dep.pt"%epoch)
-                # save_checkpoint(model, epoch, args, best_acc=val_acc_max, filename="model_last.pt")
+                save_checkpoint(model, epoch, args, best_acc=val_acc_max, filename="model_last.pt")
                 if b_new_best:
                     print(">>>>>> new best model!!!!")
                     save_checkpoint(model, epoch, args, best_acc=val_acc_max, filename="model_best.pt")

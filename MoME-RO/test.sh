@@ -8,14 +8,14 @@ CHECK_GTV='organ'
 
 ##### 2_2. CTV Inference
 WORKDIR='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/'
-CHECKPOINTLIST='multimodal_MoME' 
+CHECKPOINTLIST='unimodal multimodal_MoME' 
 for CHECK in $CHECKPOINTLIST
 do
     echo -E $CHECK
     if [[ $CHECK == *"multimodal"* ]] ; then 
-        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 1 --flag_pc True --textencoder 'llama3' 
-        # CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 2 --flag_pc True --textencoder 'llama3' 
-        # CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 3 --flag_pc True --textencoder 'llama3' 
+        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 1 --force_expert 1 --flag_pc True --textencoder 'llama3' 
+        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 1  --force_expert 2 --flag_pc True --textencoder 'llama3' 
+        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 1  --force_expert 3 --flag_pc True --textencoder 'llama3' 
     else
         CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --test_mode 1 --flag_pc True 
     fi

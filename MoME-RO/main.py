@@ -312,6 +312,7 @@ if __name__ == "__main__":
     parser.add_argument("--target", default=2, type=int) # 0:ctv 1:gtv 2:ctv with gtv 3:mr 4:mr_reg
     parser.add_argument("--moe", default=0, type=int) # 0:None 1:MOE 2:MO_MCE
     parser.add_argument("--expert", default=8, type=int) 
+    parser.add_argument("--force_expert", default=0, type=int) 
     parser.add_argument("--topk", default=2, type=int) 
     parser.add_argument("--shot", default=1, type=int) 
     parser.add_argument("--gtv_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/organ', type=str) 

@@ -66,5 +66,13 @@ bash MoME-RO/test.sh
 
 ## 6. Finetune
 ```
+set hyperparameter "force_expert" of finetune.sh for multimodal_MoME based on different experts
+- force_expert : 1 (if metrics of MoME-RO/ckpt/multimodal_MoME/result_centerD-expert1.xlsx shows the best results)
+- force_expert : 2 (if metrics of MoME-RO/ckpt/multimodal_MoME/result_centerD-expert2.xlsx shows the best results)
+- force_expert : 3 (if metrics of MoME-RO/ckpt/multimodal_MoME/result_centerD-expert3.xlsx shows the best results)
+set hyperparameter "shot" of finetune.sh  from 1 to 3 for each 1-shot to 3-shots
+- shot : 3
+set hyperparameter "report_dir" of finetune.sh between "model_best.pt" or "model_last.pt" depending on utilizing early-stopping or not
+- report_dir : model_last.pt
 bash MoME-RO/finetune.sh
 ```

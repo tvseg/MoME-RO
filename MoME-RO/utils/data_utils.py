@@ -112,8 +112,8 @@ def datafold_read_(args, report=None, dir=None, test_mode=None):
         d['id'] = report_key
         d['test_mode'] = max(test_mode-1, 0) 
     
-        if ((args.logdir.find('Finetune') >= 0) | (args.pretrained_dir.find('Finetune') >= 0)) & (test_mode == 4):
-            d['test_mode'] = 1
+        if args.force_expert > 0:
+            d['test_mode'] = args.force_expert-1 
 
         if d["side"] not in data.keys():
             data[d["side"]] = [] 
