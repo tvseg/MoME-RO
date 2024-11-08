@@ -256,19 +256,20 @@ def main(args):
                 npstructure = sitk.GetArrayFromImage(structure)
 
                 # GTV
-                if (j.lower().find('gtv') >= 0) | (j.lower().find('_250x') >= 0) | (j.lower().find('_240') >= 0) | (j.lower().find('hptv') >= 0) | (j.lower().find('ptv1') >= 0)| (j.lower().find('high') >= 0):
-                    label[npstructure == 255] = 2 #label_index[j.lower()] #
+                if (j.lower().find('gtv') >= 0) | (j.lower().find('hptv') >= 0):
+                    label[npstructure == 255] = 2 
                     print('***gtv***'+j, sep = ', ')
 
-                find = j.lower().split('tv')[-1]
-                num_find = re.findall(r'\d+', find)
-                if len(num_find) == 0:
-                    print(j, sep = ', ')
-                    continue
-
                 # CTV & PTV
-                label[(npstructure == 255) & (label!= 2)] = 1
-                print('***'+j, sep = ', ')
+                if (j.lower().find('ctv_') >= 0) | (j.lower().find('ptv_') >= 0):
+                    find = j.lower().split('tv')[-1]
+                    num_find = re.findall(r'\d+', find)
+                    if len(num_find) == 0:
+                        print(j, sep = ', ')
+                        continue
+
+                    label[(npstructure == 255) & (label!= 2)] = 1
+                    print('***'+j, sep = ', ')
 
             else:
                 print(j, sep = ', ')
