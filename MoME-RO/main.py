@@ -91,7 +91,7 @@ def main_worker(gpu, args):
 
     # resume
     if (args.resume_ckpt == True):
-        print("Use pretrained weights")
+        print("Use pretrained weights :%s"%args.pretrained_dir)
         model_dict = torch.load(os.path.join(args.pretrained_dir, args.pretrained_model_name), map_location="cpu")["state_dict"]
         model.load_state_dict(model_dict, strict=False)  
 
@@ -346,11 +346,12 @@ if __name__ == "__main__":
         args.optim_lr *= 0.1 
         if args.stage == 3:
             args.resume_ckpt = True
-            args.pretrained_dir = args.pretrained_dir 
+            args.pretrained_dir = args.pretrained_dir.split('_Finetune')[0]
 
     print('target %d, in_channel %d'%(args.target, args.in_channels))            
     print("stage: %d"%args.stage)
     print("moe: %d, experts: %d, topk: %d"%(args.moe, args.expert, args.topk))
     print("lr: %.7f"%args.optim_lr)
+    print("logdir: %s"%args.logdir)
                 
     main(args)

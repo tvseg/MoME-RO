@@ -90,11 +90,11 @@ def datafold_read_(args, report=None, dir=None, test_mode=None):
             count += 1
                 
             if rep.find('outlier') >= 0:
-                print("outlier: ", f, report[report_key])
+                # print("outlier: ", f, report[report_key])
                 continue
             
             d["report"] = rep
-            print(rep)
+            # print(rep)
             d["side"] = d["report"].split('<psa> ')[1].split(' ')[0]
 
         except:
@@ -442,7 +442,7 @@ def build_prompt(df, args):
         row = df.loc[df['Unit No'] == no]
         try:
             text_prompt = row['mgh_raw'].values[0]
-            print(text_prompt)
+            # print(text_prompt)
             if (text_prompt != text_prompt):
                 continue
             if (row['Train'].values[0] == 0) | (text_prompt.find("?") >= 0):
@@ -456,7 +456,7 @@ def build_prompt(df, args):
             text_prompt += (' <psa> ' + psai)
             if args.meta:
                 text_prompt += (' <real>' + real)
-            print(text_prompt)
+            # print(text_prompt)
         except:
             if unit_no.count(no) == 1:
                 text_prompt = prepare_report(args, row, 0)
@@ -568,7 +568,7 @@ def prepare_report(args, row, i=0):
     
     if args.context_mode == 0:
         text_prompt += ' <prostectomy> %s'%prompt_list[4].lower().split(':')[-1].replace('.','')
-        print(text_prompt)
+        # print(text_prompt)
 
     text_prompt = text_prompt.replace('N/A', '?').replace(' gleason score', '')
     text_prompt = text_prompt.replace('n/a', '?') 
