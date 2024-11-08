@@ -106,6 +106,8 @@ def datafold_read_(args, report=None, dir=None, test_mode=None):
             eval_tag = dir.split('/')[-2]
             train_tag = '_trainset' if test_mode == 0 else ''
             d['gtv'] = ['%s/raw_%s%s/%s.nii'%(args.gtv_dir, eval_tag, train_tag, f.replace(dir, '').replace('/data.nii.gz', ''))] 
+            if len(glob(d['gtv'][0])) == 0:
+                continue
             
         d['id'] = report_key
         d['test_mode'] = max(test_mode-1, 0) 
