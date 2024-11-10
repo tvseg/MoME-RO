@@ -14,10 +14,10 @@ do
     echo -E $CHECK
     if [[ $CHECK == *"multimodal"* ]] ; then 
         CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --stage 3 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --logdir $SAVEDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 4 --force_expert 2 --flag_pc True --textencoder 'llama3' --shot 3
-        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 4 --force_expert 2 --flag_pc True --textencoder 'llama3' --pretrained_model_name 'model_last.pt'
+        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $SAVEDIR$CHECK --context True --n_prompts 1 --context_length 32 --test_mode 4 --force_expert 2 --flag_pc True --textencoder 'llama3' --pretrained_model_name 'model_last.pt'
     else
         CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --stage 3 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --logdir $SAVEDIR$CHECK --test_mode 4 --flag_pc True --shot 3
-        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $WORKDIR$CHECK --test_mode 4 --flag_pc True --pretrained_model_name 'model_last.pt'
+        CUDA_VISIBLE_DEVICES=$GPU_DEVICE python main.py --target 2 --gtv_dir $WORKDIR_GTV$CHECK_GTV --pretrained_dir $SAVEDIR$CHECK --test_mode 4 --flag_pc True --pretrained_model_name 'model_last.pt'
     fi
 done
 
