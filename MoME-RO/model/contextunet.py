@@ -365,8 +365,6 @@ class ContextUNETR(nn.Module):
             self.context_length = args.context_length
             self.token_embed_dim = self.text_encoder.text_projection.shape[-1]
             self.contexts = nn.Parameter(torch.randn(args.n_prompts, self.context_length, self.token_embed_dim))
-            if self.rag:
-                self.top_k = args.top_k
             self.max_length = 77
 
             for name, param in self.text_encoder.named_parameters():
