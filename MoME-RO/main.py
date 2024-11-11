@@ -291,7 +291,6 @@ if __name__ == "__main__":
     parser.add_argument("--trash", default=False, type=bool)
     parser.add_argument("--gen", default=False, type=bool)
     
-    parser.add_argument("--top_k", default=2, type=int)
     parser.add_argument("--n_prompts", default=1, type=int)
     parser.add_argument("--context_length", default=32, type=int)
     parser.add_argument("--batch_size", default=2, type=int, help="number of batch size")
@@ -301,8 +300,8 @@ if __name__ == "__main__":
     parser.add_argument("--flag_pc", default=True, type=bool)
     parser.add_argument("--meta", default=False, type=bool)
 
-    parser.add_argument("--target", default=2, type=int) # 0:ctv 1:gtv 2:ctv with gtv 3:mr 4:mr_reg
-    parser.add_argument("--moe", default=0, type=int) # 0:None 1:MOE 2:MO_MCE
+    parser.add_argument("--target", default=2, type=int) # 0:ctv 1:gtv 2:ctv given gtv 
+    parser.add_argument("--moe", default=0, type=int) # 0:None 1:Vanilla MOE 2:MoME
     parser.add_argument("--expert", default=8, type=int) 
     parser.add_argument("--force_expert", default=0, type=int) 
     parser.add_argument("--topk", default=2, type=int) 
@@ -337,7 +336,6 @@ if __name__ == "__main__":
 
     # Finetune
     if (args.logdir.find('Finetune') >= 0) | (args.pretrained_dir.find('Finetune') >= 0):
-        
         args.max_epochs = 501
         args.val_every = 20
         args.optim_lr *= 0.1 
