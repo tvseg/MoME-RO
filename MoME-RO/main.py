@@ -218,8 +218,6 @@ if __name__ == "__main__":
     parser.add_argument("--logdir", default='', type=str, help="directory to save the tensorboard logs")
     parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint") 
     parser.add_argument("--pretrained_dir", default='', type=str, help="pretrained checkpoint directory") 
-    parser.add_argument("--data_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD/', type=str, help="dataset directory")
-    parser.add_argument("--report_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD.xlsx', type=str, help="dataset directory") 
     parser.add_argument(
         "--pretrained_model_name",
         default="model_best.pt",
@@ -309,6 +307,10 @@ if __name__ == "__main__":
     parser.add_argument("--force_expert", default=0, type=int) 
     parser.add_argument("--topk", default=2, type=int) 
     parser.add_argument("--shot", default=1, type=int) 
+
+    # repositories
+    parser.add_argument("--data_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD/', type=str, help="dataset directory")
+    parser.add_argument("--report_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD.xlsx', type=str, help="report directory") 
     parser.add_argument("--gtv_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/organ', type=str) 
     parser.add_argument("--rep_llm", default='/Users/yo084/Documents/Projects/99_MoMCE-RO_vFinal/model/llama3/Meta-Llama-3-8B-Instruct', type=str) 
 
