@@ -214,8 +214,6 @@ def main_worker(gpu, args):
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="ContextSeg")
-
-    #/home/gpuadmin/yujin/ro-llama/breast_target_volume_v2/Report
     
     parser.add_argument("--logdir", default='', type=str, help="directory to save the tensorboard logs")
     parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint") 
@@ -282,7 +280,7 @@ if __name__ == "__main__":
     parser.add_argument("--textencoder", default="llama3", type=str, help="optimization algorithm")
     parser.add_argument("--lora", default=False, type=bool)
  
-    parser.add_argument("--stage", default=1, type=int) # 1: train 2:style of trainset 3: style of testset 4: test on styled testset
+    parser.add_argument("--stage", default=1, type=int) # 1: train 3: finetune
     parser.add_argument("--test_mode", default=1, type=int)
     parser.add_argument("--flag", default="plan_form", type=str) #clinical_note
     parser.add_argument("--save_interval", default=1000, type=int)
@@ -295,11 +293,7 @@ if __name__ == "__main__":
     parser.add_argument("--trash", default=False, type=bool)
     parser.add_argument("--gen", default=False, type=bool)
     
-    parser.add_argument("--rogpt", default=False, type=bool)
-    parser.add_argument("--rogpt_v2", default=False, type=bool)
-    parser.add_argument("--rag", default=False, type=bool)
     parser.add_argument("--top_k", default=2, type=int)
-
     parser.add_argument("--n_prompts", default=1, type=int)
     parser.add_argument("--context_length", default=32, type=int)
     parser.add_argument("--batch_size", default=2, type=int, help="number of batch size")
