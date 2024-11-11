@@ -219,7 +219,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--logdir", default='', type=str, help="directory to save the tensorboard logs")
     parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint") 
-    parser.add_argument("--pretrained_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/ckpt/multimodal_MoME/', type=str, help="pretrained checkpoint directory") 
+    parser.add_argument("--pretrained_dir", default='', type=str, help="pretrained checkpoint directory") 
     parser.add_argument("--data_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD/', type=str, help="dataset directory")
     parser.add_argument("--report_dir", default='/Users/yo084/Documents/Projects/mnt/0_dataset/MoME/center/centerD.xlsx', type=str, help="dataset directory") 
     parser.add_argument(
@@ -334,9 +334,9 @@ if __name__ == "__main__":
     args.report_dir = [args.report_dir]
 
     # MoE
-    if (args.logdir.find('MoME') >= 0) | (args.pretrained_dir.find('MoME') >= 0):
+    if (args.logdir.find('multimodal_MoME') >= 0) | (args.pretrained_dir.find('multimodal_MoME') >= 0):
         args.moe = 2
-    elif (args.logdir.find('VMoE') >= 0) | (args.pretrained_dir.find('VMoE') >= 0):
+    elif (args.logdir.find('multimodal_VMoE') >= 0) | (args.pretrained_dir.find('multimodal_VMoE') >= 0):
         args.moe = 1
 
     # Finetune
