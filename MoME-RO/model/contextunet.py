@@ -413,7 +413,8 @@ class ContextUNETR(nn.Module):
         if (args.stage == 3) & (args.max_epochs == 501):
             for name, param in self.named_parameters():
                 if (name.find('attn_transformer')>=0) | (name.find('decoder')>=0) | (name.find('out.')>=0):  
-                    print(name)
+                    # print(name)
+                    continue
                 else:
                     param.requires_grad_(False)
 
